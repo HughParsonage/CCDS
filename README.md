@@ -5,3 +5,4 @@ Hugh was here.
 Ashley from Rstudio!
 
 Hugh was here too!
+Sam was here aswell!
