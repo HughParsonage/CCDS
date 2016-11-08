@@ -2,4 +2,6 @@
 For the collective campus data science course
 
 Hugh was here.
-Ashley from RStudio!
+Ashley from Rstudio!
+
+Hugh was here too!
