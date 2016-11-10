@@ -24,3 +24,50 @@ numeric(5) # returns 0 0 0 0 0
 character(2) # returns "" ""
 
 # Just some changes to test pull requests.
+
+
+
+# Let's get into text mining
+install.packages("tidytext")
+library(tidytext)
+library(janeaustenr)
+
+help("janeaustenr")
+
+# We want a random sample of lines of prideprejudice. And by line I mean "element of".
+# Ten random lines.
+
+length(prideprejudice) # number of lines in pp
+
+rnorm(10)
+runif(10, 1, 13030) # ten random numbers, uniformly distributed from 1, 13030
+# Best solution, takes a random sample of 10 elements
+sample(1:13030, size = 10)
+
+set.seed(1) # fixes the random numbers 
+# Take a subset [] of a vector with 13030 elements and take a random sample of 10 elements
+ten_lines_from_pp <- 
+  prideprejudice[sample(1:13030, size = 10)] 
+
+
+# Some basic text manipulation
+?nchar # count the number of characters
+nchar(ten_lines_from_pp)
+
+# What is the average number of characters per line in PP?
+mean(nchar(prideprejudice))
+
+number_of_chars <- nchar(prideprejudice)
+# Exclude the lines with 0 characters
+mean(number_of_chars[number_of_chars > 0])
+
+library(dplyr)
+library(magrittr)
+
+prideprejudice %>%
+  nchar %>% # get number of lines
+  .[. > 0] %>% # only take the subset of lines with more than 0 characters
+  mean # calculate average
+
+
+
