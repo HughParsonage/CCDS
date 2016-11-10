@@ -1,5 +1,5 @@
 
-# What is the top10 of the most commonly used words? #9
+# count of uniqe letters #14
 
 flat_words <- unlist(strsplit(prideprejudice, ""))
 flat_words <- tolower(flat_words[flat_words != " "])
