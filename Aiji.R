@@ -1,3 +1,3 @@
 # 20161108
 
-numeric(5)
+numeric(4)
