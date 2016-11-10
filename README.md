@@ -1,3 +1,3 @@
 # CCDS
-For the collective campus data science course
+For the collective campus data science course.
 
