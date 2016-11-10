@@ -1,16 +1,11 @@
-y <- c(1, 4, 8, 2)
+install.packages("janeaustenr")
+install.packages("dplyr")
+install.packages("magrittr")
 
-y <- c(1, 2, 3, 4)
-y
-length(y)
-mean(y)
+library(magrittr)                 
+library(dplyr)
+library(stringr)
+library(janeaustenr)
 
-help(c)
-y[1]
-y[y > 2]
-y > 2
-mean(y[y < -1])
-y < 0
-y ( y < 0)
-numeric(0)
-character(10000)
+#10 How many times does "Mr. Darcy" appears in Pride & Prejudice
+prideprejudice %>% toString %>% str_split("Mr. Darcy") %>% unlist %>% length - 1
