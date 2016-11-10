@@ -17,8 +17,8 @@ y > 2
 y[c(FALSE, TRUE, TRUE, FALSE)]
 
 mean(y[y > 2])
-mean(y[y < 0])
-y[y < 0] # returns numeric(0), which means it is a vector with empty elements. numeric() is a function
+mean(y[y < 0]) # returns NaN
+y[y < 0] # returns numeric(0), which means it is an empty vector. numeric() is a function.
 
-numeric(5)
-character(2)
+numeric(5) # returns 0 0 0 0 0
+character(2) # returns "" ""
