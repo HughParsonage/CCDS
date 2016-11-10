@@ -22,3 +22,4 @@ number_of_chars <- nchar(prideprejudice)
 max(number_of_chars)
 
 # The maximum number of characters is 74
+
