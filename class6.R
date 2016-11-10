@@ -109,3 +109,20 @@ length(unique(new_df))
 
 prideprejudice %>%
   str_split(prideprejudice," ")
+
+# top 10 most commoanly used wordss
+#strsplit
+strsplit("ab cdXef", split = "X")  # split accepts single split char
+
+?str_split
+
+strsplit("XXSaabcdef", split = "a+") # split on mutliple a
+
+
+flat_words <- unlist(strsplit(prideprejudice,"\\W"))
+flat_words <- tolower(flat_words)
+freq <- table(flat_words)
+freq1 <- sort(freq, decreasing = TRUE)
+freq1[1:10]
+
+# top 
