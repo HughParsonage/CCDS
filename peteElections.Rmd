@@ -28,3 +28,65 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+
+```{r packages, echo=FALSE}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(tidyr)
+
+```
+
+
+```{r loadData, echo=FALSE}
+two_party_preffered_by_polling_place <- 
+fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
+
+
+```
+
+```{r analysis}
+
+two_party_preffered_by_polling_place %>%
+  summarise(ave_swing = weighted.mean(Swing, w = TotalVotes))
+            ave_swing_Against = mean(Swing[Swing <0]),
+            )
+
+
+head(two_party_preffered_by_polling_place)
+
+```
+``` {r swingAgainst}
+
+two_party_preffered_by_polling_place %>%
+  filter(Liberal/National Coalition Percentage -Swing) %>%
+  
+
+names(two_party_preffered_by_polling_place)
+
+``````
+
+```{r }
+two_part_prefered_2013 <- fread("http://results.aec.gov.au/17496/Website/Downloads/HouseTcpByCandidateByPollingPlaceDownload-17496.csv")
+
+output <- 
+two_part_prefered_2013 %>%
+  filter(Elected == "Y") %>%
+  select(PollingPlaceID,PartyAb) %>%
+  left_join(two_party_preffered_by_polling_place, by = "PollingPlaceID") %>%
+  filter(PartyAb =="LP" | PartyAb == "NP") %>%
+  filter(!is.na(StateAb)) %>%
+  filter(Swing == min(Swing))
+  
+
+
+
+```
+
+
+
+
+
