@@ -29,7 +29,29 @@ plot(pressure)
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
+#Australia's 2016 election
 
+```{r packages}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+```
+
+
+The function "fread" comes from the 'data.table' package. The first arugument is either a file (like a "csv" file) or a URL connection to the file
+
+``` {r loadData}
+two_party_preferred_by_polling <-
+  fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
+
+#(To run a chunk, type 'Cntrl + C' when your cursos is in the chunc)
+
+``` {r basic- analysis}
+two_party_preferred_by_polling %>%
+  summarise(avg_swing = mean(Swing))
+```
 
 
 
