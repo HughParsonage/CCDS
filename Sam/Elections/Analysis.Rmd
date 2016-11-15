@@ -1,0 +1,116 @@
+---
+title: "Elections"
+author: "Sam"
+date: "15 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+# Australia's 2016 election
+
+```{r packages}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+```
+
+The function `fread` comes from `data.table` package. The first argument is either a file (like a `csv` file) or a URL connection to a fie.
+
+The function downlaods the file (if its a URL) and then reads it as a table into memory
+
+```{r loadData}
+two_party_preferred_by_polling_place <- fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
+```
+
+#dplyr
+
+## Basic election results
+
+
+```{r basic-analysis}
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = mean(Swing))
+```
+
+### Exercises:
+1. Better way to calc average swing against incumberent?
+1. Better way to calc average swing?
+1. Which polling place had the biggest swing against the Coalition?
+
+We shouldn't weight every polling place equally. A swing of 15 per cent in a polling place with 3 botes shouldn't swamp swings of 2 percent in a polling place with 2000 votes. We use `weighted.mean` with a `w = TotalVotes` to get around this:
+### (2)
+```{r average-swing}
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = weighted.mean(Swing, w = TotalVotes))
+```
+Recall that `summarise` takes a data frame, and an expression like `LHS = RHS` where `LHS` is the column name and `RHS` is a function of the column names in the data, returning a data frame with a single column, `LHS` which has the value of the function `RHS`.
+
+### (3)
+``` {r biggest-swing-Coalition}
+two_party_preferred_by_polling_place %>%
+  filter(Swing == max(Swing))
+```
+
+## 2013 election
+
+### Exercise:
+1. Download the 2013 election polling place data. Create a new object `two_party_preferred_polling_place_2013` containing the data.
+
+```{r}
+two_party_preferred_by_polling_place_2013 <- fread("http://results.aec.gov.au/17496/Website/Downloads/HouseTppByPollingPlaceDownload-17496.csv")
+```
+
+2. Determine (without download the relevant dataset!) the elected part (ALP ir Coalition) of each Division in 2013
+
+Take the dataset, `group_by` the Division, then `summarise` by adding up all the Liberal/Coalition votes and dividing by the sum of the total votes. Then use `mutate` to add a column, and `if_else`  to conditionally assign the elected party.
+
+``` {r elected-party-by-Division-2013}
+elected_party_by_Division_2013 <- 
+  two_party_preferred_by_polling_place_2013 %>%
+  group_by(DivisionNm) %>%
+    summarise(Coalition_2PP = sum(`Liberal/National Coalition Votes`) / sum(TotalVotes)) %>%
+  mutate(elected = if_else(Coalition_2PP > 0.5, "Coalition", "ALP"))
+```
+
+`.Last.value[]` prints the last run code to the console. `[]` is saying to print.
+
+
+``` {r}
+two_party_preferred_by_polling_place %>%
+  # joins on all column names
+  inner_join(elected_party_by_Division_2013) #right_join or a left_join (for an outer join)
+  
+  
+```
+
+### Homework
+## What polling place had the biggest swing against the Coalition? (Note: not Division, so you may need to amend the previous code...)
+## Is inner join appropirate? Should we use a left/right (outer) joint (or a full join) instead?
+
+
