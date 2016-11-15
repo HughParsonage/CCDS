@@ -85,5 +85,8 @@ two_party_preferred_by_polling_place %>%
   
   View
 
-## homeword - what polling place had the biggest swing?  
+## homeword - what polling place had the biggest swing? 
+## Division 
+## what join is appropriate 
+
 
