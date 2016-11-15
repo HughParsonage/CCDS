@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
 ```
 
 ## R Markdown
@@ -15,7 +16,7 @@ This is an R Markdown document. Markdown is a simple formatting syntax for autho
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
+```{r name_of_chunk_is_cars}
 summary(cars)
 ```
 
@@ -28,3 +29,91 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Australia's 2016 Election
+
+```{r packages,message=FALSE}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+
+```
+
+the function 'fread' comes from 'data.table' packages
+The first argument is either a file or a URL connection to a file. The output is a table
+```{r loadData}
+tw_party_by_polling_place<-fread("http://results.aec.gov.au/20499/website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
+
+```
+
+(to run a chunk, press Ctrl+Shift+Enter in the chunk)
+
+```{r basic-analysis}
+tw_party_by_polling_place %>%
+  summarise(avg_swing = mean(Swing))
+
+```
+
+### Exercices:
+1. Can you think of a better way to calculate the 'average' swing againts the incumbent?
+2. Can you think of a better way to calculate the 'average' Swing
+3. Which polling place had the biggest Swing against the coalition?
+
+We shouldn't weight every polling place equally. A swing of 15% in a polling place of 33 votes shouldn't swamp swing of 2% in a polling place of 2232 votes. Use weighted.mean instead of mean
+
+### 2
+```{r weighted_average}
+# mean(tw_party_by_polling_place$Swing,na.rm = T)
+
+# weighted average:
+tw_party_by_polling_place %>%
+  summarise(avg_swing = weighted.mean(Swing, w= TotalVotes))
+```
+
+Recall that 'summarise' takes a data frame. expression like 'LHS=RHS' returns a data frame with a single column, LHS is the column name and it has the value of function 'RHS'
+
+### 3
+```{r wbiggest_swing-coalition}
+
+tw_party_by_polling_place %>%
+  filter(Swing==max(Swing)) %>%
+  .$PollingPlace
+
+max(tw_party_by_polling_place$Swing)
+```
+
+### 2013 Election Exercices
+1. Download 2013 election polling place data into a new object named two_party_by_polling_place_2013
+
+```{r get_data}
+two_party_by_polling_place_2013<-
+  fread("http://results.aec.gov.au/17496/website/Downloads/HouseTppByPollingPlaceDownload-17496.csv")
+
+```
+2. Determine, without downloading the relevant dataset, the elected party (ALP or Coalition) of each division in 2013
+
+First, determine the vote percentage for one party, in this case, take coalition. If it exceeds 50%, coalition wins:
+```{r elected_2013}
+elected_party_by_division_2013<-
+  two_party_by_polling_place_2013 %>%
+  group_by(DivisionNm) %>%
+  summarise(Coalition_2PP = sum(`Liberal/National Coalition Votes`)/sum(TotalVotes)) %>%
+  mutate(elected = ifelse(Coalition_2PP >0.5,'Coalition','ALP'))
+
+# mutate is used to add a column
+```
+
+## Homework
+1. What PollingPlace has the biggest swing against the Coalition? not a division, so amend the previous code
+2. Is an inner join appropriate? Should we use outer join instead?
+
+```{r incumbent_2013}
+tw_party_by_polling_place %>% 
+  inner_join(elected_party_by_division_2013) # right_join left_join %>%
+  
+
+```
+
+
