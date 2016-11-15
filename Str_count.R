@@ -54,7 +54,7 @@ prideprejudice %>%
   geom_bar(aes(x = x, y = count), stat = "identity")
 
 
-
+install.packages("rmarkdown", dep = TRUE)
 
 
 

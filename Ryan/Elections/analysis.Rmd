@@ -34,7 +34,7 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 ```{r packages}
 library(data.table)
 library(dplyr)
-library(dtplyr)
+library(dplyr)
 library(magrittr)
 library(tidyr)
 ```
@@ -52,6 +52,77 @@ two_party_preferred_by_polling <-
 two_party_preferred_by_polling %>%
   summarise(avg_swing = mean(Swing))
 ```
+
+#Exercises:
+1.Can you think of a better way to calculate the 'average' swing against the incumbent?
+2. Can you think of a better way to calculate the 'average' swing?
+3.Which polling place had the biggest swing against the coalition
+
+
+We Should't weight every polling place equally. A swing of 15 % in a polling place with 33 votes shouldn't swamp swings of 2 percent in a polling place with 2000 votes. We use 'weighted.mean' with ' w = TotalVotes' to get around this:
+### (2)
+```{r average- swing}
+two_party_preferred_by_polling %>%
+  summarise(avg_swing = weighted.mean(Swing, w = TotalVotes))
+
+```
+
+Recall that 'summarise' takes a data frame, and an express like 'LHS = RHS' where "LHS" is the column name and "RHS" is a function of the column names in the data, returning a data frame with a single column, "LHS" which has the value of the function "RHS".
+
+
+### (3)
+```{r biggest- swing- Coalition}
+two_party_preferred_by_polling %>%
+  filter(Swing == max(Swing))
+
+```
+
+### 2013
+
+## Exercise:
+1. Download the 2013 election polling place data
+2. Create a new object "two_party_preferred_by_polling_place_2013" containing the data.
+
+``` {r loadData}
+two_party_preferred_by_polling_place_2013 <-
+fread("http://results.aec.gov.au/17496/website/Downloads/HouseTppByPollingPlaceDownload-17496.csv")
+
+```
+
+2. Deterime (Without downloading the relevant dataset!) the elected party (ALP or coalition) of each Division in 2013.
+
+Take the datset, `group_by` the Division, then `summarise` by adding up all the Liberal/Coalition votes (ensuring we use backticks because the variable contains a slash and spaces) and dividing by the sum of the total votes. Then use `mutate` to add a column, and `if_else` to conditionally assign the elected party.
+
+``` {r elected-party-by-division-2013}
+elected_party_by_division_2013 <-
+  two_party_preferred_by_polling_place_2013 %>%
+  group_by(DivisionNm) %>%
+  summarise(Coalition_2PP = sum(`Liberal/National Coalition Votes`) /
+sum(TotalVotes)) %>%
+  mutate(elected = if_else(Coalition_2PP > 0.5, "Coalition", "ALP"))
+
+elected_party_by_division_2013
+
+```
+
+``` {R}
+two_party_preferred_by_polling %>%
+  #Joins on all common names
+  inner_join(elected_party_by_division_2013) %>% #Right_join or a Left_join (For an outer join)
+  
+```
+
+#Homework 
+#What polling place had the biggest swing against the coalition? (Note: not division, so you may need to amend the previous code........)
+## Is an inner join appropriate? Should we use a left / right (outer) join (Or a full join) instead?
+
+
+
+
+
+
+
+
 
 
 
