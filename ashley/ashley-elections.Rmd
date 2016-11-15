@@ -29,3 +29,70 @@ plot(pressure)
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
+
+```{r packages, include=FALSE}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+```
+
+```{r loadData}
+
+two_party_preferred_by_polling_place <- fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv", skip=1)
+
+two_party_preferred_by_polling_place_2013 <- fread("http://results.aec.gov.au/17496/website/Downloads/HouseTppByPollingPlaceDownload-17496.csv", skip=1)
+
+```
+
+``` {r basic-analysis}
+
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = mean(Swing))
+
+```
+
+### Exercises:
+1. We should calculate the 'average' by weighting against the total votes at each polling place. We use 'weighted.mean' with 'w = TotalVotes' to get around this:
+
+```{r average-swing}
+
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = weighted.mean(Swing, w = TotalVotes))
+
+
+```
+
+# MOST IMPORTANT THING IN DATA SCIENCE IS TO BE ABLE TO PRODUCE A REPRODUCABLE REPORT
+# USING MARKDOWN AND KNITR IS THE BEST
+
+
+```{r biggest-swing-coalition}
+
+# Find the rows with the maximum swing
+two_party_preferred_by_polling_place %>%
+  filter(Swing == max(Swing))
+
+# Determine the elected party (ALP or Coalition) of each Division in 2013
+
+elected_party_by_division_2013 = 
+two_party_preferred_by_polling_place_2013 %>%
+  group_by(DivisionNm) %>%
+  summarise(Coalition_2PP = sum(`Liberal/National Coalition Votes`) / sum(TotalVotes) ) %>%
+  mutate(Elected = if_else(Coalition_2PP > 0.5, 'Coalition', 'ALP')) # mutate adds a column
+
+
+two_party_preferred_by_polling_place %>%
+  inner_join(elected_party_by_division_2013)
+
+```
+
+
+### homework
+### What polling place had the biggest swing AGINST the coalition
+### 
+### is inner join appropriate/ Should we use left/right/full join instead?
+### 
+
+
