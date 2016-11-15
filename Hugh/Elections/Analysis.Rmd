@@ -110,6 +110,7 @@ two_party_preferred_by_polling_place %>%
 ### Homework
 ## What polling place had the biggest swing against the Coalition? (Note: not Division, so you may need to amend the previous code...)
 ## Is an inner join appropriate? Should we use a left/right (outer) join (or a full join) instead?
+Yes it's fine!
 
 
 
