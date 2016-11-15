@@ -2,7 +2,7 @@
 title: "Elections"
 author: "MSAM"
 date: "15 November 2016"
-output: pdf_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -28,3 +28,23 @@ plot(pressure)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Australia's 2016 election
+
+```{r packages}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+```
+
+The function 'fread' comes from the 'data.table' package 
+
+```{r loadData}
+two_party_preferred_by_polling_place <-fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
+```
+
+
+
+
