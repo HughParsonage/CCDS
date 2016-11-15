@@ -39,12 +39,51 @@ library(magrittr)
 library(tidyr)
 ```
 
-The function 'fread' comes from the 'data.table' package 
+The function 'fread' comes from the 'data.table' package. The first argument is either a file (like a 'csv' file) or a URL connection to a file.
+
+The fucntion d/ls the file (if it's a URL) and then reads it as a table into memory. 
 
 ```{r loadData}
 two_party_preferred_by_polling_place <-fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
 ```
 
+#dplyr
 
+```{r basic-analysis}
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = mean(Swing))
 
+```
+
+# Exercise 1 
+two_party_preferred_by_polling_place %>%
+  filter(Swing < 0) %>%
+  summarise(avg_swing = weighted.mean(Swing, w = TotalVotes))
+
+# Exercise 2
+two_party_preferred_by_polling_place %>%
+  filter(Swing > 0) %>%
+  arrange(Swing) %>%
+  top_n(Swing,n=1)
+  
+# 2013 Data
+1. D/load data 
+2. Create new object - two_party_preferred_by_polling_place_2013 
+
+two_party_preferred_by_polling_place_2013 <- fread("http://results.aec.gov.au/17496/Website/Downloads/HouseTppByPollingPlaceDownload-17496.csv")
+
+2. Determine
+two_party_preferred_by_polling_place_2013 %>%
+  group_by(DivisionNm) %>%
+  summarise(Coalition_2PP = sum(`Liberal/National Coalition Votes`)/sum(TotalVotes)) %>%
+  mutate(elected = if_else (Coalition_2PP > 0.5, "Coalition","ALP"))
+  
+3.
+two_party_preferred_by_polling_place %>%
+  # join on all common names
+  inner_join(two_party_preferred_by_polling_place_2013) %>%
+  
+  View
+
+## homeword - what polling place had the biggest swing?  
 
