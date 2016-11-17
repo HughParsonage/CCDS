@@ -109,9 +109,7 @@ Conclusion: Swing.x and `ppts_diff_Coalition_votes` are different
 
 Inner join appropriate?
 
-Ok, to detemine the swing.
-
-
+Ok, to detemine the swing as we're only interested in the same pollingid.
 
 
 
