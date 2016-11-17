@@ -111,6 +111,8 @@ Inner join appropriate?
 
 Ok, to detemine the swing as we're only interested in the same pollingID. 
 
+# test test 
+
 
 
 
