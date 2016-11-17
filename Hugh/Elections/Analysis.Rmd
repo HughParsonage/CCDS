@@ -109,8 +109,73 @@ two_party_preferred_by_polling_place %>%
 
 ### Homework
 ## What polling place had the biggest swing against the Coalition? (Note: not Division, so you may need to amend the previous code...)
+
+Let's try to confirm that `Swing` in `two_party_preferred_by_polling_place` is in fact the swing against the Coalition. That is, the percentage of votes to Coalition minus the percentage votes to Coalition in 2013 equals `Swing` in 2016.
+
+`select` isn't quite good enough, so let's set an option:
+
+```{r}
+options(dplyr.width = Inf)
+```
+
+```{r polling-place-biggest-swing}
+difference_and_swing_by_pollingplaceid <- 
+  two_party_preferred_by_polling_place %>%
+  inner_join(two_party_preferred_by_polling_place_2013, by = "PollingPlaceID") %>%
+  tbl_df %>%  # for prettier printing
+  mutate(ppt_diff_Coalition_votes = `Liberal/National Coalition Percentage.x` - `Liberal/National Coalition Percentage.y`) %>%
+  # contains inside select means 'select columns whose names contain that string'
+  select(PollingPlaceID, contains("Percentage"), ppt_diff_Coalition_votes, Swing.x) 
+```
+
+```{r}
+difference_and_swing_by_pollingplaceid %>%
+  # select random sample
+  sample_n(10)
+```
+
+```{r}
+difference_and_swing_by_pollingplaceid %$%
+  # Check both columns have the same sign.
+  # Using {} allows you to use multiple columns after %$%.
+  # stopifnot(...) stops (i.e. errors) if any of the conditions are not met.
+  # {stopifnot(all(sign(ppt_diff_Coalition_votes) == sign(Swing.x)))}
+  {all(sign(ppt_diff_Coalition_votes) == sign(Swing.x))} ## FALSE
+```
+
+Where is the sign not the same?
+```{r}
+difference_and_swing_by_pollingplaceid %>%
+  # Subset this table where the signs are different
+  filter(sign(ppt_diff_Coalition_votes) != sign(Swing.x)) %>%
+  # How many rows?
+  nrow
+```
+
+What proportion of the rows have different signs? We can use `mean` cunningly to test the proportion of `TRUE`s in a column of `TRUE`s and `FALSE`s.
+
+```{r}
+difference_and_swing_by_pollingplaceid %$%
+  # Average rate where signs are not the same.
+  mean(sign(ppt_diff_Coalition_votes) != sign(Swing.x))
+```
+
+Conclusion: `Swing.x` and `ppts_diff_Coalition_votes` are different.
+
+```{r}
+difference_and_swing_by_pollingplaceid %>%
+  arrange(desc(ppt_diff_Coalition_votes)) %>%
+  head(1) %>%
+  inner_join(two_party_preferred_by_polling_place, by = "PollingPlaceID")
+```
+
+
+
+Why can't we use `cbind` as opposed to `inner_join`? Because the PollingPlaceID may not be in the same order: you'll compare different polling places. `cbind` simply smooshes the two tables together.
+
 ## Is an inner join appropriate? Should we use a left/right (outer) join (or a full join) instead?
-Yes it's fine!
+
+Yes, it's fine! Swings for newly created or no longer existent polling places aren't well-defined. So we can restrict to only those polling places which were present in both elections.
 
 
 
