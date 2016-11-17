@@ -44,7 +44,7 @@ The function 'fread' comes from the 'data.table' package. The first argument is 
 The fucntion d/ls the file (if it's a URL) and then reads it as a table into memory. 
 
 ```{r loadData}
-two_party_preferred_by_polling_place <-fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
+two_party_preferred_by_pp_16 <-fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
 ```
 
 #dplyr
@@ -70,7 +70,7 @@ two_party_preferred_by_polling_place %>%
 1. D/load data 
 2. Create new object - two_party_preferred_by_polling_place_2013 
 
-two_party_preferred_by_polling_place_2013 <- fread("http://results.aec.gov.au/17496/Website/Downloads/HouseTppByPollingPlaceDownload-17496.csv")
+two_party_preferred_by_pp_13 <- fread("http://results.aec.gov.au/17496/Website/Downloads/HouseTppByPollingPlaceDownload-17496.csv")
 
 2. Determine
 two_party_preferred_by_polling_place_2013 %>%
@@ -82,11 +82,39 @@ two_party_preferred_by_polling_place_2013 %>%
 two_party_preferred_by_polling_place %>%
   # join on all common names
   inner_join(two_party_preferred_by_polling_place_2013) %>%
-  
-  View
 
-## homeword - what polling place had the biggest swing? 
-## Division 
-## what join is appropriate 
+Let's try to confirm that 'Swing'in the two party preferred by polling placeis is in fact the swing against the Coalition. That is, the perecentage
+
+## homework - what polling place had the biggest swing? 
+
+```{r rolling-place-biggest-swing}
+swing <- two_party_preferred_by_pp_16 %>%
+  inner_join(two_party_preferred_by_pp_13, by = "PollingPlaceID") %>%
+  mutate(ppt_diff_Coalition_votes = `Liberal/National Coalition Percentage.x` - `Liberal/National Coalition Percentage.y`) %>%
+  select(PollingPlaceID, contains("Percentage"),ppt_diff_Coalition_votes,Swing.x)
+  #stopifnot stops (i.e. errors) if any of the conditions are not met
+  
+```
+
+
+```{r}
+options(dplyr.width = Inf)
+
+swing2 <- swing %>%
+  filter(sign(ppt_diff_Coalition_votes) != sign(Swing.x))
+   
+```
+
+Conclusion: Swing.x and `ppts_diff_Coalition_votes` are different 
+
+Inner join appropriate?
+
+Ok, to detemine the swing.
+
+
+
+
+
+
 
 
