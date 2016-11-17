@@ -34,3 +34,4 @@ prideprejudice %>%
   ggplot(aes(x = Letters, y = count)) +
   geom_bar(stat = "identity")
 
+

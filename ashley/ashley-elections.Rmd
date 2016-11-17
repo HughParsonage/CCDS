@@ -91,8 +91,38 @@ two_party_preferred_by_polling_place %>%
 
 ### homework
 ### What polling place had the biggest swing AGINST the coalition
-### 
 ### is inner join appropriate/ Should we use left/right/full join instead?
 ### 
+
+let's try to confirm that 'swing' in 'two_party_preferred_by_polling_place' is in
+fact the swing against the Coalition. That is, the perentage of votes to Coalitiion
+minus the percentage votes to Coalition in 2013 equal 'swing' in 2016
+
+
+```{r polling-place-biggest-swing}
+
+difference_and_swing_by_pollingid <-
+  
+two_party_preferred_by_polling_place %>%
+  inner_join(two_party_preferred_by_polling_place_2013, by = "PollingPlaceID") %>%
+               mutate(ppt_diff_coalition_votes = `Liberal/National Coalition Percentage.x` - `Liberal/National Coalition Percentage.y`) %>%
+  select(PollingPlaceID, contains("Percentage"), ppt_diff_coalition_votes, Swing.x)
+
+# %$%
+# check both columns have the same sign
+# use of %$% above exposes the columns directly below
+# using {} allows you to use multiple columns after %$%
+# {stopifnot(all(sign(ppt_diff_coalition_votes) == sign(Swing.x)))}
+
+#
+difference_and_swing_by_pollingid %>%
+  filter(sign(ppt_diff_coalition_votes) != sign(Swing.x))
+
+
+
+
+options(dplyr.width = Inf)
+```
+
 
 
