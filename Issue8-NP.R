@@ -6,3 +6,5 @@ library(janeaustenr)
 number_of_chars <- nchar(prideprejudice)
 
 max(number_of_chars)
+
+
