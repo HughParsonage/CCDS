@@ -110,3 +110,19 @@ two_party_prefered_by_polling_place %>%
 ### Homework
 ## What polling place had the biggest swing against the Coalition? (Note not division so you may need to amend the earlier code)
 ## Is inner_join appropriate? Should we use a left/right (outer) join instead?
+
+```{r polling-place-biggest-swing}
+difference_and_swing_by_pollingplaceid <-
+  two_party_prefered_by_polling_place %>%
+  tbl_df %>%
+  inner_join(two_party_prefered_by_polling_place_2013,by = "PollingPlaceID") %>%
+  mutate(ppt_diff_Coalition_votes = `Liberal/National Coalition Percentage.y` - `Liberal/National Coalition Percentage.x`) %>%
+  select(PollingPlaceID, contains("Percentage"), ppt_diff_Coalition_votes, Swing.x) %>%
+  #Using {} allows you to use multiple columns after %>%
+  # stopifnot(...) stops if any of the conditions are not met.
+  {stopifnot(all(sign(ppt_diff_Coalition_votes) == sign(Swing.x)))}
+```
+
+
+
+
