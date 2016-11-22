@@ -1,3 +1,4 @@
+
 ---
 title: "Analysis_Aiji"
 author: "Aiji"
@@ -18,7 +19,7 @@ library(dplyr)
 library(dtplyr)
 library(magrittr)
 library(tidyr)
-
+library(ggplot2)
 ```
 
 the function 'fread' comes from 'data.table' packages
@@ -49,7 +50,7 @@ We shouldn't weight every polling place equally. A swing of 15% in a polling pla
 
 # weighted average:
 tw_party_by_polling_place %>%
-  summarise(avg_swing = weighted.mean(Swing, w= TotalVotes))
+summarise(avg_swing = weighted.mean(Swing, w= TotalVotes))
 ```
 
 Recall that 'summarise' takes a data frame. expression like 'LHS=RHS' returns a data frame with a single column, LHS is the column name and it has the value of function 'RHS'
@@ -96,7 +97,9 @@ i.e. swing in 2016 = percentage of votes for coalition in 2016 - percentage of v
 twoYears<-tw_party_by_polling_place %>% 
   inner_join(two_party_by_polling_place_2013,by="PollingPlaceID") %>%
   mutate(ppt_diff_Coalition_votes = `Liberal/National Coalition Percentage.x`-`Liberal/National Coalition Percentage.y`) %>%
-  select(PollingPlaceID,contains("Percentage"),ppt_diff_Coalition_votes,Swing.x) %$%
+  select(PollingPlaceID,contains("Percentage"),ppt_diff_Coalition_votes,Swing.x) 
+
+twoYears %$%
 # contains inside select means: select column whose names contain that string
   {
     # using { } allows us to write multiple columns after %$
@@ -119,6 +122,7 @@ We can use 'mean' to test the proportion of TRUE in a column of logical entries
 different_Swing_sign<- twoYears %>%
   filter(sign(ppt_diff_Coalition_votes)!=sign(Swing.x))
 
+
 twoYears %$%
   mean(sign(ppt_diff_Coalition_votes)!=sign(Swing.x))
 
@@ -136,8 +140,6 @@ twoYears %>%
 #   
 ```
 
-
-
 ```{r incumbent_2013}
 tw_party_by_polling_place %>% 
   inner_join(elected_party_by_division_2013) # right_join left_join %>%
@@ -145,4 +147,125 @@ tw_party_by_polling_place %>%
 
 ```
 
+# Plotting charts of Election results
 
+```{r 2016-11-17}
+polling_places<-fread("http://results.aec.gov.au/20499/Website/Downloads/GeneralPollingPlacesDownload-20499.csv")
+
+which(duplicated(polling_places$PollingPlaceID)) # null
+
+```
+
+Think about a plan to plot the result in a map of each polling place's result. 
+Not the actual plot mechanism, but what data you would need to do this
+
+1. PollingPlaceID
+2. Longitude
+3. Latitude
+4. Liberal/National Coalition Percentage
+
+```{r plot_the_coordinate}
+
+polling_places %>%
+  select(PollingPlaceID,Latitude,Longitude) %>%
+  inner_join(tw_party_by_polling_place, by = "PollingPlaceID") %>%
+  ggplot(aes(x= Longitude, y=Latitude)) +
+  geom_point()
+
+```
+
+```{r plot_the_winner}
+
+library(ggthemes)
+au_map<-polling_places %>%
+  select(PollingPlaceID,Latitude,Longitude) %>%
+  inner_join(tw_party_by_polling_place, by = "PollingPlaceID") %>%
+  mutate(Winner = if_else(`Liberal/National Coalition Percentage` > 50,"Coalition","ALP"))%>%
+  ggplot(aes(x= Longitude, y=Latitude,colour= Winner)) +
+  geom_point() +
+  theme_map()
+
+au_map
+
+```
+
+Let's plot a function to zoom in on a city
+Hint: ?coord_map. Just a function choosing either 'SYD' or 'MELB'
+
+```{r}
+library(mapproj)
+au_map+coord_map()
+
+VIC_places<-polling_places %>%
+  filter(State == 'VIC')
+
+VIC_map<-VIC_places %>%
+  select(PollingPlaceID,Latitude,Longitude) %>%
+  inner_join(tw_party_by_polling_place, by = "PollingPlaceID") %>%
+  mutate(Winner = if_else(`Liberal/National Coalition Percentage` > 50,"Coalition","ALP"))%>%
+  ggplot(aes(x= Longitude, y=Latitude,colour= Winner)) +
+  geom_point() +
+  theme_map() +
+  coord_map(xlim=c(144.5,145.6),ylim=c(-38.2,-37.5)) + # limiting it t Melbourne only 
+  scale_color_manual(values = c("red","blue"))
+
+VIC_map
+
+plot_city("MEL") # should zoom in to MEL
+
+# example of a function:
+unabbr_city<-function(abbr){
+  switch(abbr,
+         "SYD"="Sydney",
+         "MEL"="MElbourne",
+         "unknown")
+  # switch chooses the outcome that its first argument selects
+}
+
+plot_MEL<-function(){
+  polling_places %>%
+  select(PollingPlaceID,Latitude,Longitude) %>%
+  inner_join(tw_party_by_polling_place, by = "PollingPlaceID") %>%
+  mutate(Winner = if_else(`Liberal/National Coalition Percentage` > 50,"Coalition","ALP"))%>%
+  ggplot(aes(x= Longitude, y=Latitude,colour= Winner)) +
+  geom_point() +
+  theme_map() +
+  coord_map(xlim=c(144.5,145.6),ylim=c(-38.2,-37.5)) + # limiting it t Melbourne only 
+  scale_color_manual(values = c("red","blue"))
+}  
+plot_SYD<-function(){
+  polling_places %>%
+  select(PollingPlaceID,Latitude,Longitude) %>%
+  inner_join(tw_party_by_polling_place, by = "PollingPlaceID") %>%
+  mutate(Winner = if_else(`Liberal/National Coalition Percentage` > 50,"Coalition","ALP"))%>%
+  ggplot(aes(x= Longitude, y=Latitude,colour= Winner)) +
+  geom_point() +
+  theme_map() +
+  coord_map(xlim=c(150.55,151.6),ylim=c(-32.24,-33.6)) + # limiting it t Melbourne only 
+  scale_color_manual(values = c("red","blue"))
+}  
+
+plot_city<-function(city){
+  if(city == "MEL"){    plot_MEL()  }
+  else if(city == "SYD") { plot_SYD()  }
+}
+plot_city('MEL')
+
+ # plot state:
+plot_state<-function(x){
+  state_places<-polling_places %>%
+  filter(State == x)
+
+  state_places %>%
+    select(PollingPlaceID,Latitude,Longitude) %>%
+    inner_join(tw_party_by_polling_place, by = "PollingPlaceID") %>%
+    mutate(Winner = if_else(`Liberal/National Coalition Percentage` > 50,"Coalition","ALP"))%>%
+    ggplot(aes(x= Longitude, y=Latitude,colour= Winner)) +
+    geom_point() +
+    theme_map() + 
+    scale_color_manual(values = c("red","blue"))
+}
+
+plot_state('QLD')
+
+```

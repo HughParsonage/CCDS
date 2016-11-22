@@ -1,0 +1,41 @@
+---
+title: "Predictive_analysis"
+author: "Aiji"
+date: "22 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+options(dplyr.width=Inf)
+```
+
+## PREDICTION
+
+```{r}
+
+# 1. create the model
+coin_toss<-function(){
+  ifelse(runif(1)<0.5,"heads","tails")
+}
+
+coin_toss()
+
+# test the model:
+population<-c("heads","tails")
+
+# 2. generate data using the same process
+set.seed(1)
+idx<-sample(1:length(population),5,replace = T)
+actual<-population[idx]
+
+# 3. run the model n the new data
+predicted<-character(5)
+for(i in seq_along(predicted)){
+  predicted[i]<-coin_toss()
+}
+# 4. compare the predicted with the actual
+mean(actual == predicted) # this is 1-error rate. means 60% of the time the predicted is right
+
+```
