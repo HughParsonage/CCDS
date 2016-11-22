@@ -1,0 +1,96 @@
+---
+title: "Titanic"
+author: "Hugh"
+date: "22 November 2016"
+output: html_document
+---
+
+# Load the data
+We need to use relative paths to direct `fread` to `train.csv`. And it needs to be relative to the `Rmd` file. 
+
+```{r}
+# Create a new object in this chunk
+# called titanic_training that comprises
+# the train.csv file from data-raw/titanic/
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+titanic_training <- fread("../../data-raw/titanic/train.csv")
+```
+
+If you don't know what package a particular functions comes from, (but you know it comes from an installed package -- and you haven't misspelled it), you can type `??thefunction`. Sometimes this comes up with only a few options.
+
+```{r}
+titanic_training %>%
+  select(Survived)
+```
+
+Let's start with a basic model. This model just takes the average rate of survival and predicts that.
+
+```{r}
+# lm = linear model
+lm.cointoss <- lm(Survived ~ 1, data = titanic_training)
+```
+
+`lm` has a `summary` method:
+
+```{r}
+summary(lm.cointoss)
+```
+
+Need to test the model (against actual values). Firstly, let's just test against the data we used to construct the model. To generate predictions given a model, use `predict(model, ...)`
+
+```{r}
+titanic_training_with_cointoss_prediction <- 
+  titanic_training %>%
+  mutate(predicted = predict(lm.cointoss, newdata = .))
+```
+
+The `error' of this model is what? One way is to use the *root mean-squared error*. That is:
+
+```{r}
+titanic_training_with_cointoss_prediction %$%
+  sqrt(sum((Survived - predicted)^2) / length(Survived))
+```
+
+```{r}
+titanic_training_with_cointoss_prediction %$%
+  mean(abs(Survived - predicted))
+```
+
+What about a model where everyone dies?
+
+```{r}
+titanic_training %>%
+  mutate(predicted = 0) %$%
+  sqrt(sum((Survived - predicted)^2) / length(Survived))
+```
+
+This model is worse: it has a higher error rate (using the same error function). 
+
+This sort of error we calculated is called **training error**. 
+
+There are a few problems with the above model scenario. One is that people either survive or die: you can't 38 per cent survive. Likewise, you can't evaluate a model with categorical outputs using a continuous function:
+
+```{r}
+rmse <- function(predicted, actual){
+  sqrt(sum((predicted - actual)^2) / length(actual))
+}
+```
+
+### Exercises:
+1. Instead of choosing 38 per cent for every row, choose 1 or 0 using `sample` with a 38 per cent chance of 1 as your prediction.
+2. Create a different function from `rmse` that takes two inputs and returns a single value: the misclasification error.
+3. Calculate the error using this function for your model in 1.
+
+
+
+
+
+
+
+
+
+
+
