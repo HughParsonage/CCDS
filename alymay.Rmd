@@ -161,3 +161,89 @@ Why can't we use `cbind` as opposed to `inner_join`? Because the PollingPlaceID 
 ## Is an inner join appropriate? Should we use a left/right (outer) join (or a full join) instead?
 
 Yes, it's fine! Swings for newly created or no longer existent polling places aren't well-defined. So we can restrict to only those polling places which were present in both elections.
+
+# Plotting charts of election results
+Go to the AEC website, find
+`http://results.ace.gov.au/20499/Website/Downloads/GeneralPollingPlacesDownload-20499.csv`
+
+```{r}
+polling_places <-
+  fread("http://results.aec.gov.au/20499/Website/Downloads/GeneralPollingPlacesDownload-20499.csv")
+```
+
+Think about a plan to plot the result in a map of each polling place's result. Not the actual plot mechanis, but what data you would need to do this
+
+LAt/Long dataset of polling places for each site ID
+
+```{r}
+library(ggplot2)
+library(ggthemes)
+polling_places %>%
+  select(PollingPlaceID, Latitude, Longitude) %>%
+  inner_join(two_party_preferred_by_polling_place, by = "PollingPlaceID") %>%
+  mutate(Winner = if_else(`Liberal/National Coalition Percentage` > 50, "Coalition", "ALP"))  %>%
+  ggplot(aes(x=Longitude, y= Latitude, colour=Winner)) +
+  geom_point() +
+  theme_map()
+```
+
+Let's plot a function to zoom in to a city
+
+```{r}
+library('mapproj')
+plotmelb <- function () { 
+  polling_places %>%
+  select(PollingPlaceID, Latitude, Longitude) %>%
+  inner_join(two_party_preferred_by_polling_place, by = "PollingPlaceID") %>%
+  mutate(Winner = if_else(`Liberal/National Coalition Percentage` > 50, "Coalition", "ALP"))  %>%  
+  ggplot(aes(x=Longitude, y= Latitude, colour=Winner)) +
+  geom_point() +
+  theme_map() +
+    
+  coord_map(xlim=c(144.5, 145.6),
+            ylim=c(-38.2, -37.5))
+}
+
+```
+
+
+```{r}
+library('mapproj')
+plot_syd <- function () { 
+  polling_places %>%
+  select(PollingPlaceID, Latitude, Longitude) %>%
+  inner_join(two_party_preferred_by_polling_place, by = "PollingPlaceID") %>%
+  mutate(Winner = if_else(`Liberal/National Coalition Percentage` > 50, "Coalition", "ALP"))  %>%  
+  ggplot(aes(x=Longitude, y= Latitude, colour=Winner)) +
+  geom_point() +
+  theme_map() +
+    
+  coord_map(xlim=c(150.55, 151.6),
+            ylim=c(-32.24, -33.6))
+}
+
+```
+
+```{r}
+plot_city <- function(city){
+  if(city=="MELB") {
+    plotmelb()
+  }
+  if(city=="SYD") {
+    plot_syd()
+  }
+}
+```
+
+``` {r}
+unabbreviate_city <- function(abbrev){
+  #switch chooses the outcome
+  #that its first argument selects.
+  switch(abbev,
+         "SYD" = "Sydney"
+         "MEL" = "Melbourne",
+         "unknown")  
+  }  
+}
+```
+
