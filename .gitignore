@@ -1,3 +1,6 @@
+# html
+*.html
+
 # History files
 .Rhistory
 .Rapp.history
@@ -35,3 +38,4 @@ vignettes/*.pdf
 
 *.Rproj
 
+*.html
