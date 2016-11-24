@@ -1,0 +1,263 @@
+---
+title: "Testing and modelling"
+author: "Hugh"
+date: "24 November 2016"
+output: html_document
+---
+
+Testing is harder than modelling. A good benchmark model -- one that is easy to deploy, without much predictive power, but will at least provide you with a comparison with other models -- is a simple average of the response variable.
+
+```{r}
+x <- rnorm(100, 2, 1)
+y <- x^2 - x + 3 + rnorm(100)
+```
+
+The `rnorm(100)` part of the `y` component is to add **white noise**.  Compare the following:
+
+```{r y-vs-x-scatterplot}
+plot(x, y)
+```
+
+```{r}
+y_no_noise <- x^2 - x + 3
+plot(x, y_no_noise)
+```
+
+So the true model of `y` (i.e. the model that our analysis *should* select) is $y = x^2 - x + 3$. But let's pretend we don't know that. How can we tell we've arrived at such a model?
+
+## Training error
+
+### Benchmark model
+1. Create an appropriate benchmark model for y as the response and x as the predictor.
+2. Calculate the training error of that model. (Use root mean squared error.)
+
+```{r lm.0}
+lm.0 <- lm(y ~ 1)  # predicts the mean mean(y)
+```
+
+Training error of `lm.0`. First we create an error function, rmse:
+
+```{r rmse}
+rmse <- function(actual, predicted){
+  sqrt(mean((actual - predicted)^2))
+}
+```
+
+To calculate training error, use the following construction:
+
+```{r training_error_lm0}
+# training_error_lm_0
+library(dplyr)
+library(magrittr)
+foo <- x
+data_frame(x = foo, actual = y) %>%
+  mutate(predicted = predict(lm.0, newdata = .)) %$%
+  rmse(actual = actual, predicted = predicted)
+```
+
+So do the above for the model `lm(y ~ x)`.
+
+```{r}
+lm.1 <- lm(y ~ x)
+data_frame(x = x, actual = y) %>%
+  mutate(predicted = predict(lm.1, newdata = .)) %$%
+  rmse(actual = actual, predicted = predicted)
+```
+
+## More information about lm.1
+
+```{r}
+summary(lm.1)
+```
+
+
+### lm.2, lm.9
+```{r}
+lm.2 <- lm(y ~ poly(x, 2))
+lm.9 <- lm(y ~ poly(x, 9))
+data_frame(x = x, y = y) %>%
+  mutate(predicted2 = predict(lm.2, newdata = .), 
+         predicted9 = predict(lm.9, newdata = .)) %$%
+         {
+           cat(rmse(y, predicted2))
+           cat("\n")
+           cat(rmse(y, predicted9))
+         }
+```
+
+### Test error
+
+```{r}
+data.1 <- data_frame(x = x, y = y)
+training_data <- 
+  data.1 %>%
+  sample_frac(0.7)
+
+test_data <- 
+  anti_join(data.1, training_data)
+```
+
+```{r}
+lm.00 <- lm(y ~ 1, data = training_data)
+test_data %>%
+  mutate(predicted = predict(lm.00, newdata = .)) %$%
+  rmse(actual = y, predicted = predicted)
+```
+
+## Testing error of other models
+```{r}
+lm.11 <- lm(y ~ x, data = training_data)
+lm.22 <- lm(y ~ I(x^2) + x, data = training_data)
+lm.99 <- lm(y ~ poly(x, 9), data = training_data)
+test_data %>%
+  mutate(predicted.1 = predict(lm.11, newdata = .), 
+         predicted.2 = predict(lm.22, newdata = .), 
+         predicted.9 = predict(lm.99, newdata = .)) %$%
+  
+         {
+           cat(rmse(y, predicted.2))
+           cat("\n")
+           cat(rmse(y, predicted.1))
+           cat("\n")
+           cat(rmse(y, predicted.9))
+         }
+```
+
+We can programmatically select (or visualize) such linear models. But first let's add more data.
+
+```{r}
+X <- rnorm(10e3, 2, 1)
+Y <- X^2 - X + 3 + rnorm(10e3)
+```
+
+```{r}
+test_data <- data_frame(x = X, y = Y)
+```
+
+```{r}
+test_data %>%
+  mutate(predicted.1 = predict(lm.11, newdata = .), 
+         predicted.2 = predict(lm.22, newdata = .), 
+         predicted.9 = predict(lm.99, newdata = .)) %$%
+  
+         {
+           cat(rmse(y, predicted.2))
+           cat("\n")
+           cat(rmse(y, predicted.1))
+           cat("\n")
+           cat(rmse(y, predicted.9))
+         }
+
+```
+
+So the `lm.99` model is on average far more erroneous than the other two. Why?
+
+```{r}
+test_data %>%
+  mutate(predicted.1 = predict(lm.11, newdata = .), 
+         predicted.2 = predict(lm.22, newdata = .), 
+         predicted.9 = predict(lm.99, newdata = .)) %>%
+  arrange(desc(predicted.9 - y))
+```
+
+`lm.99` is an overfitted model!
+
+```{r}
+library(ggplot2)
+training_data %>%
+  ggplot(aes(x = x, y = y)) + 
+  geom_point() + 
+  stat_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "blue") + 
+  stat_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE, color = "red") + 
+  stat_smooth(method = "lm", 
+              formula = y ~ poly(x, 9), 
+              se = FALSE, 
+              color = "purple", fullrange = TRUE) 
+```
+
+(Alt + Shift + <down arrow> copies the current line down)
+
+## Exercise
+1. Create a function (of n) that returns the test error of a linear model of degree n ($n >= 0$).
+
+```{r}
+myfun <- function(n){
+  training_data <- 
+    data.1 %>%
+    sample_frac(0.7)
+  
+  test_data <- 
+    anti_join(data.1, training_data)
+  
+  if (n == 0){
+    lm.n <- lm(y ~ 1, data = training_data)
+  } else {
+    lm.n <- lm(y ~ poly(x, n), data = training_data)
+  }
+  
+  test_data %>%
+    mutate(predicted = predict(lm.n, newdata = .)) %$%
+    rmse(y, predicted)
+}
+
+MyFun <- Vectorize(myfun)
+```
+The `Vectorize` function is used because we want to apply the function to a sequence.
+
+
+
+Check how often the training error is less than the test error
+```{r}
+training_errors <- numeric(1000)
+test_errors <- numeric(1000)
+for (i in 1:1000){
+  # lm.0 <- lm(y ~ 1)
+  training_error <- 
+    data_frame(x = x, y = y) %>%
+    mutate(predicted = predict(lm.1, newdata = .)) %$%
+    rmse(y, predicted)
+  
+  data.1 <- data_frame(x = x, y = y)
+  training_data <- 
+    data.1 %>%
+    sample_frac(0.7)
+  
+  test_data <- 
+    anti_join(data.1, training_data, by = c("x", "y"))
+  # or use suppressMessages
+  
+  test_error <- 
+    test_data %>%
+    mutate(predicted = predict(lm.1, newdata = .)) %$%
+    rmse(predicted = predicted, y)
+  
+  test_errors[i] <- test_error
+  training_errors[i] <- training_error
+  
+}
+
+```
+
+
+```{r}
+which.min(MyFun(1:20))
+one2ten_1000times <- rep(1:10, 10)
+data_frame(degree = one2ten_1000times) %>%
+  mutate(error = MyFun(degree))
+plot(one2ten_1000times, MyFun(one2ten_1000times))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
