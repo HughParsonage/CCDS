@@ -1,0 +1,206 @@
+---
+title: "titanic_analysis"
+author: "Alymay"
+date: "22 November 2016"
+output: html_document
+---
+
+#load the data
+
+```{r}
+# Create a new object in this chunk
+# called titanic_training that comprises
+# the train.csv file from data-raw/titanic/
+
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+titanic_training <- fread("data-raw/titanic/train.csv")
+```
+If you don't know what package a particular function comes from you can type ??the Function. Sometimes this comes up with only  afew options
+
+```{r}
+titanic_training %>%
+  select(Survived)
+```
+Let's start with a basic model. This model just takes the average rate of survival and predicts that.
+```{r}
+lm.cointoss <- lm(Survived ~ 1, data = titanic_training)
+```
+
+`lm` as a `summry` method:
+
+```{r}
+summary(lm.cointoss)
+```
+
+Need to test the model (against actual values). Firstly, let's just test against the data we used to construct the model. To generate precicitons given a model, use `predict(model,...)
+
+```{r}
+titanic_training_with_cointoss_prediction <-
+titanic_training %>%
+  mutate(predicted=predict(lm.cointoss, newdata = .)) 
+
+```
+
+This `error` of this model is what? One way is to use the "root meand-square between actual and predicted 
+
+```{r}
+titanic_training_with_cointoss_prediction %>%
+  mutate(col =sqrt(sum(Survived - predicted)^2)/length(Survived))
+```
+
+```{r}
+titanic_training_with_cointoss_prediction %>%
+  mean(Survived)
+  mean(abs(Survived - predcited))
+```
+
+```{r}
+titanic_training %>%
+  mutate(predicted = 0) %>%
+  sum(Survived)
+  sqrt(sum(Survived - predicted)^2)/ length(Survived)
+```
+
+This model is worse: it has a higher error rate (using the same error function).
+
+This sort of error we calculated is called **training error**.
+
+There are a few problems with the above model scenario. One is that people either survive or die: you can't 38% survive. Likewise, you can't evaluate a model with categorical outputs uning a continuous function
+
+```{r}
+rmse <- function(predicted, actual){
+  sqrt(sum(predicted - actual)^2)/length(actual)
+}
+```
+
+## Exercise
+1. Instead of choosing 38 per cent for every row, choose 1 or 0 using
+`sample` with a 38 per cent chance of 1 as your prediction.
+2. Create a different function from 'rmse` that takes two inputs and returns a single value: the misclasification error.
+3. Calculate the error using this function for your model in 1
+
+```{r}
+titanic_training_with_prediction2 <-
+titanic_training %>%
+  mutate(predicted=sample(c(0,1), nrow(titanic_training), replace = TRUE, prob=c(1 - mean(.$Survived),mean(.$Survived)))) %$%
+mce(Survived, predicted)
+
+```
+
+
+```{r}
+mce <- function(actual, predicted){
+  mean(actual != predicted)  #0 perfect classification 1=anti-classification
+}
+```
+
+```{r}
+titanic_training %>%
+  mutate(predicted = 0) %$%
+  mce(Survived, predicted)
+}
+```
+
+So the latter model is better.
+
+There's a more serious problem with this approach to modelling
+
+```{r}
+library(rpart)
+rpart.naive <- rpart(Survived ~ ., data = titanic_training)
+
+titanic_training %>%
+  mutate(predicted = predict(rpart.naive, newdata = .)) %>%
+  select(predicted, Survived) ##just looked up name so redicted on historic data
+
+##over-fitting using too much of data to predict
+```
+
+This model above suffers from **overfitting**: it uses the names of people who died in the dataset to determine who will die next. Because the dataset we're using to test
+is identical to what it was trained on, it appears to perform well. In reality, its just repeating what was in the data already .. and it will prefor terribly on new data (with different names)
+
+To get around this problem, we calculate the **tet error** pm *new data* ...data the model hasn't seen. Typically we do this by partitioning up the data we have into a
+**training set** and a **test set**. Here is a common method
+
+```{r}
+titanic_training_train <-
+  titanic_training %>%
+  mutate(Name = factor(Name),
+         Ticket = factor(Ticket),
+         Cabin = factor(Cabin)) %>%
+  # A random sample of ^)%
+  sample_frac(size = 0.6)
+              #An anti-join returns rows that DON't match
+              titanic_training_test <-
+  titanic_training %>%
+  mutate(Name = factor(Name),
+         Ticket = factor(Ticket),
+                         Cabin = factor(Cabin)) %>%
+                #The 40% of the original dataset not in _train
+                anti_join(titanic_training_train)
+```
+Now
+
+```{r}
+
+  titanic_training-train.lm <- rpart(Survived ~ ., data = 
+                                       titanic_training_train)
+   titanic_training_test %>%
+     mutate(predicted = predict(titanic_training_train.lm, newdata = .)) %$%
+     mce(Survived, predicted)
+                                     
+```
+
+New meodel we could use more variables
+
+```{r}
+lm.2 <- lm(Survived ~ Sex + Fare, data = titanic_training)
+
+```
+
+
+```{r}
+titanic_training_train2 <-
+  titanic_training %>%
+  mutate(Name = factor(Name),
+         Sex = factor(Sex),
+         Fare = factor(Fare)) %>%
+  # A random sample of ^)%
+  sample_frac(size = 0.6)
+              #An anti-join returns rows that DON't match
+              titanic_training_test <-
+  titanic_training %>%
+  mutate(Name = factor(Name),
+         Sex= factor(Sex),
+         Fare = factor(Fare)) %>%
+                #The 40% of the original dataset not in _train
+                anti_join(titanic_training_train2)
+```
+
+```{r}
+titanic_training %>%
+mutate(predicted = predict(lm.2, newdata = .))
+```
+
+An estimate of the training error:
+
+```{r}
+titanic_training %>%
+mutate(predicted = predict(lm.2, newdata = .)) %$%
+  rmse(Survive,predicted)
+
+```
+
+
+```{r}
+lm.2a <- lm(Survived ~ Sex + Fare, data = titanic_training_train2)
+```
+
+```{r}
+titanic_training_test %>%
+  mutate(predicted = predict(lm.2a, newdata = .)) %$%
+  rmse(Survived, predicted)
+```
