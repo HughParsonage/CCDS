@@ -201,11 +201,6 @@ titanic_training_test %>%
   rmse(Survived, predicted)
 ```
 
-Time-series:
-
-```{r}
-library(forecast)
-```
 
 
 
