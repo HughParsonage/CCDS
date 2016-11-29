@@ -1,0 +1,49 @@
+---
+title: "digits-recognition"
+author: "Hugh"
+date: "29 November 2016"
+output: html_document
+---
+
+```{r}
+digits <- read.csv("../data-raw/digits/train.csv")
+
+# Two ways to determine the time taken in an short line of code:
+if (FALSE){  # if (FALSE): don't run (too slow to do each time)
+system.time(digits <- read.csv("../data-raw/digits/train.csv"))
+
+# times = 5L means repeat the expression five times
+# to obtain an average.
+library(microbenchmark)
+microbenchmark(digits <- read.csv("../data-raw/digits/train.csv"), times = 5L)
+}
+
+# What's a faster way to read in data?
+library(data.table)
+library(readr)
+system.time(digits <- read_csv("../data-raw/digits/train.csv"))
+system.time(digits <- fread("../data-raw/digits/train.csv"))
+```
+
+What are we looking at?
+```{r}
+head(digits)
+dim(digits)
+library(dplyr)
+glimpse(digits)
+```
+
+This data contains 784 columns representing the darkness of the pixel in a 28 by 28 image and `label` the digit that was actually drawn.
+
+## Visualizing the data
+
+For a random observation, plot an image of what the observation represents: i.e. what was actually drawn by the person. (Use `ggplot2`.) Also plot in the bottom-right corner an annotation of the actual label. 
+
+
+
+
+
+
+
+
+
