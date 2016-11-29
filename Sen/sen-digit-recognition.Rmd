@@ -1,0 +1,170 @@
+---
+title: "sen-digits-recog"
+author: "Sen"
+date: "29 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+library(data.table)
+#library(readr)
+
+```
+
+```{r}
+digits <- read.csv("train.csv")
+
+system.time(digits <- read.csv("train.csv"))
+
+library(microbenchmark)
+
+microbenchmark(digits <- read.csv("train.csv"), times = 5L)
+
+library(data.table)
+library(readr)
+
+system.time(digits <- read.csv("train.csv"))
+system.time(digits <- fread("train.csv"))
+```
+
+```{r}
+head(digits)
+dim(digits)
+library(dplyr)
+glimpse(digits)
+library(ggplot2)
+library(magrittr)
+```
+
+
+
+##Ex - plot a pic
+my attempt!
+summary(digits)
+help(ggplot)
+
+```{r}
+digits[1][1]
+ggplot(digits[1][2])
+```
+
+hugh
+```{r}
+digits %>% 
+  sample_n( %>% 
+      )
+```
+
+```{r}
+data.table::CJ(x = 1:2, y=1:2) %>% 
+  mutate(grep = runif(4)) %>% 
+  ggplot +
+  geom_point( aes(x=x, y=y))
+```
+
+```{r}
+data.table::CJ(x = 1:2, y=1:2) %>% 
+  mutate(grep = runif(4)) %>% 
+  ggplot +
+  geom_point( aes(x=x, y=y))
+```
+
+```{r}
+digits %>% 
+  melt.data.table(id.vars = "label")
+```
+
+##NOTE this crashes rstudio
+```{r}
+library(tidyr)
+digits %>% 
+  gather(pixel, greyness, -label)
+```
+
+```{r}
+library(dtplyr)
+digits  %>% 
+  sample_n(1) %>% 
+  melt.data.table(id.vars = "label") %>% 
+  mutate(pixel_no = as.numeric(gsub("pixel", "", variable))) %>% 
+  mutate(x_coord = floor(pixel_no / 28)) %>% 
+  mutate(y_coord = pixel_no %% 28) %>% 
+  ggplot +
+  geom_tile(aes(x=x_coord, y=y_coord, alpha = value)) +
+  geom_text(x = 28, y=-28, aes(label = label))
+```
+
+## RF
+```{r}
+install.packages(c("randomForest", "ranger"), dep=TRUE)
+```
+
+```{r}
+library(randomForest)
+library(ranger)
+```
+
+```{r}
+training_digits <-
+  digits %>% 
+  sample_frac(0.7)
+
+test_data <- 
+  anti_join(digits, training_digits)
+
+stopifnot(nrow(digits)) == nrow(training_digits) + nrow(test_digits)
+```
+
+```{r}
+rf.1 <- ranger(factor(label) ~., data = training_digits)
+```
+
+```{r}
+training_digits[538,]$label
+predict(rf.1, data = training_digits[538])
+# in console 
+#predict(rf.1, data = training_digits[538])$predictions
+```
+
+```{r}
+misclasification_error <- function(x,y)
+{
+  mean(x!=y)
+}
+```
+
+```{r}
+test_data %>% 
+  mutate(prediction = predict(rf.1, data = .)$predictions) %$%
+  misclasification_error(prediction, label)
+```
+
+```{r}
+lm.1 <- lm(label ~., data = training_digits)
+
+test_data %>% 
+  mutate(prediction = predict(lm.1, newdata = .)) %$%
+  misclasification_error(prediction, label)
+  
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
