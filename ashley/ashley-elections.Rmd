@@ -1,0 +1,128 @@
+---
+title: "Elections"
+author: "Ashley Mallia"
+date: "15 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r packages, include=FALSE}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+```
+
+```{r loadData}
+
+two_party_preferred_by_polling_place <- fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv", skip=1)
+
+two_party_preferred_by_polling_place_2013 <- fread("http://results.aec.gov.au/17496/website/Downloads/HouseTppByPollingPlaceDownload-17496.csv", skip=1)
+
+```
+
+``` {r basic-analysis}
+
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = mean(Swing))
+
+```
+
+### Exercises:
+1. We should calculate the 'average' by weighting against the total votes at each polling place. We use 'weighted.mean' with 'w = TotalVotes' to get around this:
+
+```{r average-swing}
+
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = weighted.mean(Swing, w = TotalVotes))
+
+
+```
+
+# MOST IMPORTANT THING IN DATA SCIENCE IS TO BE ABLE TO PRODUCE A REPRODUCABLE REPORT
+# USING MARKDOWN AND KNITR IS THE BEST
+
+
+```{r biggest-swing-coalition}
+
+# Find the rows with the maximum swing
+two_party_preferred_by_polling_place %>%
+  filter(Swing == max(Swing))
+
+# Determine the elected party (ALP or Coalition) of each Division in 2013
+
+elected_party_by_division_2013 = 
+two_party_preferred_by_polling_place_2013 %>%
+  group_by(DivisionNm) %>%
+  summarise(Coalition_2PP = sum(`Liberal/National Coalition Votes`) / sum(TotalVotes) ) %>%
+  mutate(Elected = if_else(Coalition_2PP > 0.5, 'Coalition', 'ALP')) # mutate adds a column
+
+
+two_party_preferred_by_polling_place %>%
+  inner_join(elected_party_by_division_2013)
+
+```
+
+
+### homework
+### What polling place had the biggest swing AGINST the coalition
+### is inner join appropriate/ Should we use left/right/full join instead?
+### 
+
+let's try to confirm that 'swing' in 'two_party_preferred_by_polling_place' is in
+fact the swing against the Coalition. That is, the perentage of votes to Coalitiion
+minus the percentage votes to Coalition in 2013 equal 'swing' in 2016
+
+
+```{r polling-place-biggest-swing}
+
+difference_and_swing_by_pollingid <-
+  
+two_party_preferred_by_polling_place %>%
+  inner_join(two_party_preferred_by_polling_place_2013, by = "PollingPlaceID") %>%
+               mutate(ppt_diff_coalition_votes = `Liberal/National Coalition Percentage.x` - `Liberal/National Coalition Percentage.y`) %>%
+  select(PollingPlaceID, contains("Percentage"), ppt_diff_coalition_votes, Swing.x)
+
+# %$%
+# check both columns have the same sign
+# use of %$% above exposes the columns directly below
+# using {} allows you to use multiple columns after %$%
+# {stopifnot(all(sign(ppt_diff_coalition_votes) == sign(Swing.x)))}
+
+#
+difference_and_swing_by_pollingid %>%
+  filter(sign(ppt_diff_coalition_votes) != sign(Swing.x))
+
+
+
+
+options(dplyr.width = Inf)
+```
+
+
+

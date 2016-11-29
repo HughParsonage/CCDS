@@ -1,0 +1,111 @@
+---
+title: "Example"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Australia's 2016 Election
+
+```{r packages}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+```
+
+The function 'fread' comes from the 'data.table' package. The first argument is either a file (like a 'csv' file) or a URL connection to a file.
+
+```{r loadData}
+two_party_preferred_by_polling_place <-
+  fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
+```
+
+# dplyr
+
+## Basic election results
+
+```{r basic-analysis}
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = mean(Swing))
+```
+
+# Exercises:
+1. Can you think of a better way to calculate the 'average' swing against the incumbent?
+2. Can you think of a better way to calculate the 'average' swing?
+3. Which polling place had the biggest swing against the Coalition?
+
+We shouldn't weigh every polling place equally. A swing of 15 per cent in a polling place with 33 votes shouldn't swamp swings of 2 per cent in a polling place with 2000 votes. We use 'weighted.mean' with 'w = TotalVotes' to get around this:
+
+### (2)
+```{r average-swing}
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = weighted.mean(Swing, w = TotalVotes))
+```
+
+Recall that 'summarise' takes a data frame, and an expression like 'LHS = RHS' where 'LHS' is the column name and 'RHS' is a function of the column names in the data, returning a data frame with a single column, 'LHS' which has the value of the function 'RHS'.
+
+### (3)
+```{r biggest-swing-Coalition}
+two_party_preferred_by_polling_place %>%
+  filter(Swing == max(Swing))
+```
+
+# Can't finish the exercise as we need more data
+
+## 2013 election
+
+### Exercise:
+1. Download the 2013 election polling place data. Create a new object 'two_party_preferred_by_polling_place_2013' containing the data.
+
+```{r}
+two_party_preferred_by_polling_place_2013 <-
+  fread("http://results.aec.gov.au/17496/website/Downloads/HouseTppByPollingPlaceDownload-17496.csv")
+```
+
+2. Determine (without downloading the relevant dataset!) the elected party (ALP or Coalition) of each Division in 2013.
+
+Take the dataset, 'group_by' the Division, then 'summarise' by adding up all the Liberal/Coalition votes (ensuring we use backticks because the variable contains a slash and spaces) and dividing by the sum of total votes. Then use 'mutate' to add a column, and 'if_else' to conditionally assign the elected party.
+
+```{r elected-party-by-Division-2013}
+elected_party_by_Division_2013 <-
+  two_party_preferred_by_polling_place_2013 %>%
+  group_by(DivisionNm) %>%
+  summarise(Coalition_2PP = sum(`Liberal/National Coalition Votes`) / sum(TotalVotes)) %>%
+  mutate(elected = if_else(Coalition_2PP > 0.5, "Coalition", "ALP"))
+```
+
+### Homework
+## What polling place has the biggest swing against the Coalition? (Note: not Division, so you may need to amend the previous code...)
+## Is an inner join appropriate? Should we use a left/right (outer) join instead?
+
+```{r biggest swing against the Coalition}
+biggest_swing_against_the_Coalition <-
+two_party_preferred_by_polling_place %>%
+  inner_join(two_party_preferred_by_polling_place_2013, by = "PollingPlaceID") %>%
+  filter(TotalVotes.x > 0 & TotalVotes.y > 0) %>%
+  filter(Swing.x == min(Swing.x))
+```
