@@ -37,9 +37,51 @@ This data contains 784 columns representing the darkness of the pixel in a 28 by
 
 ## Visualizing the data
 
-For a random observation, plot an image of what the observation represents: i.e. what was actually drawn by the person. (Use `ggplot2`.) Also plot in the bottom-right corner an annotation of the actual label. 
+For a random observation, plot an image of what the observation represents: i.e. what was actually drawn by the person. (Use `ggplot2`.) Also plot in the bottom-right corner an annotation of the actual label.
+
+```{r}
+digits %>%
+  sample_n(1) %>%
+  select(-1) %>%
+  matrix(nrow = 28, ncol = 28)
+```
 
 
+```{r}
+library(magrittr)
+library(ggplot2)
+data.table::CJ(x = 1:2, y = 1:2) %>%
+  mutate(grey = runif(n())) %>%
+  ggplot + 
+  geom_tile(aes(x = x, y = y, alpha = grey)) 
+```
+
+In order to plot a row, we need to get the x coordinates, the y coordinates, and the pixel transparency at each of them, in **separate columns of a single data frame**.
+
+To turn the digits data from wide to long form, we need to use `melt` from `data.table` package, or `gather` from the tidyr package.
+
+```{r, eval = FALSE}
+library(tidyr)
+digits %>%
+  gather(pixel, greyness, -label)
+```
+
+```{r}
+library(dtplyr)
+# digits <- fread(...)
+digits %>%
+  sample_n(1) %>%
+  melt.data.table(id.vars = "label") %>%
+  # We want to remove 'pixel' from the 'variable' column, and put
+  # this into a new column
+  mutate(pixel_no = as.numeric(gsub("pixel", "", variable))) %>%
+  # Assume the digits go up columns
+  mutate(y_coord = floor(pixel_no / 28)) %>% 
+  mutate(x_coord = pixel_no %% 28) %>% 
+  ggplot + 
+  geom_tile(aes(x = x_coord, y = -y_coord, alpha = value)) +
+  geom_text(x = 28, y = -28, aes(label = label))
+```
 
 
 
