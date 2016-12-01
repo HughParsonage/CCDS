@@ -1,0 +1,14 @@
+---
+title: "digits-recognition"
+author: "Aiji"
+date: "29 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+options(dplyr.width=Inf)
+```
+
+

@@ -1,0 +1,164 @@
+---
+title: "model and testing"
+author: "Aiji"
+date: "24 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+options(dplyr.width=Inf)
+# option: supressMessage
+
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+```
+
+A benchmark -- one that is easy to deploy, without much predictive power but provide comparison with other models. A  simple average of the response variable is a starting point.
+
+```{r}
+
+x<-rnorm(100,2,1)
+y<- x^2-x+3+rnorm(100) # function of x with a white noise
+
+plot(x,y)
+```
+
+y is a function of x, so the perfect model is the function it self: $y=x^2-x+3$
+Let's pretend we do not know that, how do we approach this problem, and how do we test our model?
+
+## Traning Error
+
+### BEnchmark MOdel
+1. Create an appropriate benchmark model
+2. Calculate the training error
+
+```{r}
+benchmark<-mean(y)
+training_error<-sqrt(sum((y-benchmark)^2)/length(y))
+
+# given answer
+lm0<-lm(y~1); # this is just a model that gives ouput = mean of y as no other variable is used in the prediction
+
+rmse<-function(predicted,actual){
+  sqrt(sum((actual-predicted)^2)/length(actual))
+}
+
+y_model<-data_frame(x=x,y=y) %>%
+  mutate(predicted=predict(lm0,.))
+
+y_model %$% 
+  rmse(predicted,y)
+```
+
+So do the above for model lm(y~x), it will give a better result
+```{r}
+lm1<-lm(y~x,y_model)
+y_model<-y_model %>% 
+  mutate(predicted1=predict(lm1,.)) 
+y_model %$%
+  rmse(predicted1,y)
+
+
+```
+
+Summary of the model:
+
+individual p-value of the coeffiecient is tested against null hypothesis that the coefficient = 0. Hence p-value of 0.0001 and 2e-16 means that it's very highly unlikely that each coefficient is zero
+
+multiple R-square is the precentage of the variance ... (?) 
+
+```{r}
+lm2<-lm(y~poly(x,2))
+lm6<-lm(y~poly(x,6))
+y_model %>% 
+  mutate(predicted2=predict(lm2,.),
+         predicted6=predict(lm6,.)         )  %$%
+         { cat(rmse(predicted2,y))
+           cat('\n')
+           cat(rmse(predicted6,y))} # cat is just printing
+
+```
+Comparing the two training errors, lm gives better performance with 6 degree of polynomial. However, we know that the true model is a quadratic, which means that poly(x,2) should be a winner. 
+
+This shows that training error is not quite a good indicator to evaluate a model. It overfits!!! We need test error
+
+Split the data into two sets one training, and one set:
+```{r  models}
+training_data<-y_model %>%
+  sample_frac(0.7)
+test_data<-anti_join(y_model,training_data,by=c("x","y"))
+
+lm1<-lm(y~poly(x,1),training_data)
+lm2<-lm(y~poly(x,2),training_data)
+lm6<-lm(y~poly(x,6),training_data)
+test_data %>% 
+  mutate(predicted1=predict(lm1,.),predicted2=predict(lm2,.),
+         predicted6=predict(lm6,.)         )  %$%
+         { cat(rmse(predicted1,y));           cat('\n') # cat is just printing
+           cat(rmse(predicted2,y));           cat('\n')
+           cat(rmse(predicted6,y))} 
+  # %>%
+  # arrange(desc(predicted6-y))
+
+```
+Test with a larger data set
+
+(Alt+Shift+<down arror>) copies the current line down
+```{r}
+y_model<-data.frame(x=rnorm(10e3,2,1)) # function of x with a white noise)
+y_model$y <- y_model %$%
+  x^2-x+3+rnorm(10e3) # function of x with a white noise
+
+# and run the models again
+
+library(ggplot2)
+
+training_data %>% 
+  ggplot(aes(x=x,y=y)) +
+  geom_point() +
+  stat_smooth(method = "lm",formula = y~x,se = F,color= "blue")+
+  stat_smooth(method = "lm",formula = y~poly(x,2),se = F,color= "red")+
+  stat_smooth(method = "lm",formula = y~poly(x,9),se = F,color= "green")
+
+```
+
+Create a function of n that returns a test error of a linear model of degree n, $n>=0$
+```{r}
+
+compute_test_error<-function(n){
+  
+  training_data<-y_model %>%
+    sample_frac(0.7)
+  test_data<-anti_join(y_model,training_data,by=c("x","y"))
+  
+  if(n==0){
+    lm0<-lm(y~1,training_data)
+  }else{
+    lm0<-lm(y~poly(x,n),training_data)
+  }
+  
+  test_data %>%
+      mutate(predicted=predict(lm0,.)) %$% 
+      sqrt(sum((y-predicted)^2)/length(y))
+}
+
+compute_test_error(0)
+which.min(sapply(1:20,compute_test_error))
+
+MyFun<-Vectorize(compute_test_error)
+which.min(MyFun(1:20))
+plot(MyFun(1:20))
+
+one2ten<-rep(1:10,10)
+data.frame(degree=one2ten) %>%
+  mutate(error=MyFun(degree))
+plot(one2ten,MyFun(one2ten))
+# .Last.value$test_errors < .Last.value$training_errors
+
+```
+

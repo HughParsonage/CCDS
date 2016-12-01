@@ -1,0 +1,182 @@
+---
+title: "Titanic"
+author: "Aiji"
+date: "22 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+options(dplyr.width=Inf)
+```
+
+## PREDICTION
+
+```{r}
+
+# 1. create the model
+coin_toss<-function(){
+  ifelse(runif(1)<0.5,"heads","tails")
+}
+
+coin_toss()
+
+# test the model:
+population<-c("heads","tails")
+
+# 2. generate data using the same process
+set.seed(1)
+idx<-sample(1:length(population),5,replace = T)
+actual<-population[idx]
+
+# 3. run the model n the new data
+predicted<-character(5)
+for(i in seq_along(predicted)){
+  predicted[i]<-coin_toss()
+}
+# 4. compare the predicted with the actual
+mean(actual == predicted) # this is 1-error rate. means 60% of the time the predicted is right
+
+```
+
+```{r titanic data-load}
+setwd("C:/Users/atjiam/Documents/CCDS/Week 3")
+dir.exists("data-raw")
+# test<-read.csv("data-raw/titanic/test.csv")
+library(data.table)
+titanic_training<-fread("../data-raw/titanic/train.csv")
+
+```
+
+??fread can be used to find the package that the function is in
+
+use ../ to go up a parent folder - use ../../ to go up two parents folder and keep increasing as necessary
+
+```{r}
+library(magrittr)
+titanic_training %>%
+  select(Survived)
+```
+```{r linear_model}
+lm.coin_toss<-lm(Survived ~1,data=titanic_training) # lm is linear model. regression against a constant: giving a horizontal line
+lm.coin_toss$coefficients # intercept of 0.3838, which means the chance of survival is 38% according to this model
+summary(lm.coin_toss)
+
+```
+Let us test the model against the actual values
+```{r}
+library(dplyr)
+# titanic_training %>%
+#   mutate(predicted=predict(lm.coin_toss,newdata=.) ) %>%
+#   .[]
+titanic_training_with_cointoss_prediction<-titanic_training %>%
+  mutate(predicted=predict(lm.coin_toss,newdata=.) )
+  
+titanic_training_with_cointoss_prediction %$% 
+  sqrt(sum((Survived-predicted)^2)/length(Survived))
+  
+titanic_training_with_cointoss_prediction %$% 
+  mean(abs(Survived-predicted))
+
+
+```
+The error rate is 0.49. This kind of error we calculated is called **training error**.
+What about a model where everyone dies?
+```{r}
+titanic_training_with_cointoss_prediction<-titanic_training %>%
+  mutate(predicted=0 ) %$%
+  sqrt(sum((Survived-predicted)^2)/length(Survived))
+```
+The model where everyone dies gives higher errr rate of 0.62 
+
+These models have problems. The first model of cointoss gives the predicted = 0.38, which is wrong . you can't evaluate a model with categorical outputs using a continuous function
+
+```{r}
+rmse<-function(predicted,actual){
+  sqrt(sum((actual-predicted)^2)/length(actual))
+}
+```
+
+### Exercises
+1. Instead of choosing 38% for every row, choose 1 or 0 using 'sample' with a 38% chance of 1 as your prediction
+2. Create a different function from 'rmse' that takes two inputs and returns a single value: the misclassification error
+3. Calculate the error using this function for your model in 1
+
+```{r exercises}
+sample_poll<-c(rep(1,38),rep(0,62))
+titanic_training_with_discrete_prediction<-titanic_training %>%
+  mutate(predicted=sample(sample_poll,nrow(titanic_training),replace=T) )
+
+titanic_training_with_discrete_prediction %$%
+  {length(which(Survived!=predicted))/length(Survived)}
+# titanic_training_with_discrete_prediction<-sample(sample_poll,nrow(titanic_training),replace=T)
+
+titanic_training_with_discrete_prediction %$%
+  mean(Survived!=predicted) # is the same thing
+
+# given answers
+
+titanic_training_1<-titanic_training %>%
+  mutate(predicted=sample(c(1,0),nrow(titanic_training),replace=T,prob=c(0.38,0.62) ))
+
+mce<-function(predicted,actual){
+  mean(predicted!=actual)
+}
+
+titanic_training_1 %$% 
+  mce(predicted,Survived)
+``` 
+
+```{r overfitting}
+library(rpart)
+overfit.lm<-rpart(Survived~.,data=titanic_training)
+titanic_training %>% 
+  mutate(predicted=predict(overfit.lm,newdata=.)) %$%
+  mce(predicted,Survived)
+
+```
+
+There is a more serious problem than the model approach, which is **overfitting**, as the model is evaluated based on the training data, not test data. In reality it's just repeating what was already in the data
+```{r}
+# titanic_training_train<- # a random sample of 60% of the row
+#   sample_frac(titanic_training,size=0.6)
+# titanic_training_test<- anti_join(titanic_training,titanic_training_train)
+
+titanic_training_train<- titanic_training %>%
+  mutate(Name = factor(Name),Ticket=factor(Ticket),Cabin=factor(Cabin)) %>%
+  sample_frac(size=0.6)
+titanic_training_test<- titanic_training %>%
+  mutate(Name = factor(Name),Ticket=factor(Ticket),Cabin=factor(Cabin)) %>%
+  anti_join(titanic_training_train)
+
+titanic_training_train.lm<-rpart(Survived~.,data =titanic_training_train )
+titanic_training_test %>%
+  mutate(predicted = predict(titanic_training_train.lm,newdata=.)) %$% 
+  mce(predicted,Survived)
+```
+
+### Exercies
+1. deploy this model on `titanic_training`
+2. What is the **training error** ?
+3. How does this compare to an estimate of the **test error** ?
+
+```{r}
+titanic_training_train<- titanic_training %>%
+  mutate(Sex = factor(Sex)) %>%
+  sample_frac(size=0.7)
+titanic_training_test<- titanic_training %>%
+  mutate(Sex = factor(Sex)) %>%
+  anti_join(titanic_training_train)
+lm.2<-lm(Survived~Sex+Fare,data = titanic_training_train)
+
+train_error <-  titanic_training_train %>%
+  mutate(predicted = predict(lm.2,newdata=.)) %$% 
+  rmse(predicted,Survived)
+test_error <-  titanic_training_test %>%
+  mutate(predicted = predict(lm.2,newdata=.)) %$% 
+  rmse(predicted,Survived)
+
+```
+
+Time series prediction : library(forecast)
