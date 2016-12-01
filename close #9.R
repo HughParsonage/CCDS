@@ -1,0 +1,2 @@
+prideprejudice %>%
+  n_distinct()
