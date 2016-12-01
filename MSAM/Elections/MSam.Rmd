@@ -1,0 +1,120 @@
+---
+title: "Elections"
+author: "MSAM"
+date: "15 November 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Australia's 2016 election
+
+```{r packages}
+library(data.table)
+library(dplyr)
+library(dtplyr)
+library(magrittr)
+library(tidyr)
+```
+
+The function 'fread' comes from the 'data.table' package. The first argument is either a file (like a 'csv' file) or a URL connection to a file.
+
+The fucntion d/ls the file (if it's a URL) and then reads it as a table into memory. 
+
+```{r loadData}
+two_party_preferred_by_pp_16 <-fread("http://results.aec.gov.au/20499/Website/Downloads/HouseTppByPollingPlaceDownload-20499.csv")
+```
+
+#dplyr
+
+```{r basic-analysis}
+two_party_preferred_by_polling_place %>%
+  summarise(avg_swing = mean(Swing))
+
+```
+
+# Exercise 1 
+two_party_preferred_by_polling_place %>%
+  filter(Swing < 0) %>%
+  summarise(avg_swing = weighted.mean(Swing, w = TotalVotes))
+
+# Exercise 2
+two_party_preferred_by_polling_place %>%
+  filter(Swing > 0) %>%
+  arrange(Swing) %>%
+  top_n(Swing,n=1)
+  
+# 2013 Data
+1. D/load data 
+2. Create new object - two_party_preferred_by_polling_place_2013 
+
+two_party_preferred_by_pp_13 <- fread("http://results.aec.gov.au/17496/Website/Downloads/HouseTppByPollingPlaceDownload-17496.csv")
+
+2. Determine
+two_party_preferred_by_polling_place_2013 %>%
+  group_by(DivisionNm) %>%
+  summarise(Coalition_2PP = sum(`Liberal/National Coalition Votes`)/sum(TotalVotes)) %>%
+  mutate(elected = if_else (Coalition_2PP > 0.5, "Coalition","ALP"))
+  
+3.
+two_party_preferred_by_polling_place %>%
+  # join on all common names
+  inner_join(two_party_preferred_by_polling_place_2013) %>%
+
+Let's try to confirm that 'Swing'in the two party preferred by polling placeis is in fact the swing against the Coalition. That is, the perecentage
+
+## homework - what polling place had the biggest swing? 
+
+```{r rolling-place-biggest-swing}
+swing <- two_party_preferred_by_pp_16 %>%
+  inner_join(two_party_preferred_by_pp_13, by = "PollingPlaceID") %>%
+  mutate(ppt_diff_Coalition_votes = `Liberal/National Coalition Percentage.x` - `Liberal/National Coalition Percentage.y`) %>%
+  select(PollingPlaceID, contains("Percentage"),ppt_diff_Coalition_votes,Swing.x)
+  #stopifnot stops (i.e. errors) if any of the conditions are not met
+  
+```
+
+
+```{r}
+options(dplyr.width = Inf)
+
+swing2 <- swing %>%
+  filter(sign(ppt_diff_Coalition_votes) != sign(Swing.x))
+   
+```
+
+Conclusion: Swing.x and `ppts_diff_Coalition_votes` are different 
+
+Inner join appropriate?
+
+Ok, to detemine the swing as we're only interested in the same pollingID. 
+
+# test test 
+
+
+
+
+
+
