@@ -81,12 +81,125 @@ rmse <- function(predicted, actual){
 
 ### Exercises:
 1. Instead of choosing 38 per cent for every row, choose 1 or 0 using `sample` with a 38 per cent chance of 1 as your prediction.
+
+```{r}
+titanic_training %>%
+  mutate(predicted = sample(c(0, 1), 
+                            size = nrow(.), 
+                            replace = TRUE, 
+                            prob = c(1 - mean(.$Survived),
+                                     mean(.$Survived))))
+```
+
 2. Create a different function from `rmse` that takes two inputs and returns a single value: the misclasification error.
+
+```{r}
+mce <- function(actual, predicted){
+  mean(actual != predicted)
+}
+```
+
 3. Calculate the error using this function for your model in 1.
+```{r}
+titanic_training %>%
+  mutate(predicted = sample(c(0, 1), 
+                            size = nrow(.), 
+                            replace = TRUE, 
+                            prob = c(1 - mean(.$Survived),
+                                     mean(.$Survived)))) %$%
+  mce(Survived, predicted)
+```
 
+Using the `mce` on a model that always predicted death.
 
+```{r}
+titanic_training %>%
+  mutate(predicted = 0) %$%
+  mce(Survived, predicted)
+```
 
+So the latter model is better. 
 
+There's a more serious problem with this approach to modelling. 
+
+```{r}
+library(rpart)
+rpart.naive <- 
+  rpart(Survived ~ ., data = titanic_training)
+
+titanic_training %>%
+  mutate(predicted = predict(rpart.naive, newdata = .)) %>%
+  select(predicted, Survived) %$%
+  mce(Survived, predicted)
+```
+
+This model above suffers from **overfitting**: it uses the names of people who died in the dataset to determine who will die next. Because the dataset we're using to test is identical to what it was trained on, it appears to perform well. In reality, it's just repeating what was in the data already -- and it will perform terribly on new data (with names not in the training data).
+
+To get around this problem, we calculate the **test error** on *new data* -- data the model hasn't 'seen'. Typically we do this by partitioning up the data we have into a **training set** and a **test set**. Here is a common method:
+
+```{r}
+titanic_training_train <- 
+  titanic_training %>%
+  mutate(Name = factor(Name), 
+         Ticket = factor(Ticket), 
+         Cabin = factor(Cabin)) %>%
+  # A random sample of 60% of the rows
+  sample_frac(size = 0.6)
+# An anti-join returns rows that DON'T match.
+titanic_training_test <- 
+  titanic_training %>%
+  mutate(Name = factor(Name), 
+         Ticket = factor(Ticket), 
+         Cabin = factor(Cabin)) %>%
+  # The 40% of the original dataset not in _train.
+  anti_join(titanic_training_train)
+```
+
+Now:
+
+```{r}
+titanic_training_train.lm <- rpart(Survived ~ ., data = titanic_training_train)
+
+titanic_training_test %>%
+  mutate(predicted = predict(titanic_training_train.lm, newdata = .)) %$%
+  mce(Survived, predicted)
+```
+
+# New model we could use more variables
+
+```{r}
+lm.2 <- lm(Survived ~ Sex + Fare, data = titanic_training)
+```
+
+# Exercise 
+1. Deploy this model on `titanic_training`.
+2. What is the **training error**?
+3. How does this compare to an estimate of the **test error**?
+
+```{r}
+titanic_training %>%
+  mutate(predicted = predict(lm.2, newdata = .))
+```
+
+An estimate of the training error:
+```{r}
+titanic_training %>%
+  mutate(predicted = predict(lm.2, newdata = .)) %$%
+  rmse(Survived, predicted)
+```
+
+3. Test error.
+
+We can't use `lm.2`. Because we've used all of the data to train `lm.2`. There's a risk of overfitting. So we need to train the model, using the same specification, on a subset:
+```{r}
+lm.2a <- lm(Survived ~ Sex + Fare, data = titanic_training_train)
+```
+
+```{r}
+titanic_training_test %>%
+  mutate(predicted = predict(lm.2a, newdata = .)) %$%
+  rmse(Survived, predicted)
+```
 
 
 
